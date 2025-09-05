@@ -1,0 +1,8 @@
+[package]
+name = "sx1255"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+binary_serde = "1.0.24"
+serde_repr = "0.1.20"
