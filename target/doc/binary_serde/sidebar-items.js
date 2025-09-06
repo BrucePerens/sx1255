@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"attr":["binary_serde_bitfield"],"derive":["BinarySerde"],"enum":["BinarySerdeBufSafeError","BitfieldBitOrder","DeserializeError","Endianness"],"macro":["impl_binary_serde_for_bitflags_ty"],"struct":["BinaryDeserializerFromBuf","BinaryDeserializerFromBufSafe","BinarySerdeBuf","BinarySerdeBufSafe","BinarySerdePadding"],"trait":["BinarySerde"]};

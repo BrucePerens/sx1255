@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"attr":["binary_serde_bitfield"],"derive":["BinarySerde"]};

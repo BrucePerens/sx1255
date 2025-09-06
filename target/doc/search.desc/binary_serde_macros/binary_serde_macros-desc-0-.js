@@ -1,1 +1,0 @@
-searchState.loadedDescShard("binary_serde_macros", 0, "a derive macro for automatically implementing the …\nan attribute for defining bitfields and implementing the …")

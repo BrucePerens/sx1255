@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["IISMMode","IOMap0","IOMap1","IOMap2","IOMap3"],"fn":["_stub"],"struct":["ClockSelect","DigBridge","Frequency","HardRegisters","IISM","IOMap","Mode","RxFrontend","Status","TxFrontend","Version"]};

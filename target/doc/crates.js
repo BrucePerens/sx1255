@@ -1,2 +1,0 @@
-window.ALL_CRATES = ["array_init","binary_serde","binary_serde_macros","proc_macro2","quote","recursive_array","serde_repr","sx1255","thiserror_impl_no_std","thiserror_no_std","unicode_ident"];
-//{"start":21,"fragment_lengths":[12,15,22,14,8,18,13,9,24,19,16]}
