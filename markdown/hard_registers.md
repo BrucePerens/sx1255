@@ -20,6 +20,7 @@ and uses the SPI bus to write the hardware registers.
 
 At this writing the SX1255 data sheet was at
 <https://semtech.my.salesforce.com/sfc/p/#E0000000JelG/a/44000000MDmE/Qs9oRoa8Sbb6mkImE9mtMh47H5LFx6KMbGcpb8L28SE>
+
 All the structures and fields correspond to the data sheet names, except that
 in a few places I've attempted to make the names more readable, but they
 should still be recognizable. 

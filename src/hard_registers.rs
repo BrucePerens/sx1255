@@ -50,6 +50,21 @@ pub struct Version {
     metal_mask_revision_number: u8,
 }
 
+#[repr(u8)]
+#[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
+/// Settings for [TxFrontend.tx_mixer_tank_res]
+enum TxMixerTankResistance {
+    #[default]
+    R950Ohm = 0,
+    R1110Ohm = 1,
+    R1320Ohm = 2,
+    R1650Ohm = 3,
+    R2180Ohm = 4,
+    R3240Ohm = 5,
+    R6000Ohm = 6,
+    R64000Ohm = 7
+}
+
 #[derive(Debug, Default, PartialEq, Eq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
 /// SX1255 hardware transmit front-end control register.
@@ -58,27 +73,46 @@ pub struct TxFrontend {
     #[doc(hidden)]
     pub _unused1: (),
     #[bits(3)]
+    /// Transmit DAC gain. 3 dB steps ranging from -9 dB for 0, to
+    /// 0 dB for 3. Setting the high bit imposes a test Vref voltage (where?)
     pub dac_gain: u8,
+
     #[bits(4)]
+    /// Transmit mixer gain. 37.5 + (2 * value) dB. 2 dB steps.
     pub mixer_gain: u8,
+
     #[bits(2)]
     #[doc(hidden)]
     pub _unused2: (),
+
     #[bits(3)]
+    /// Transmit mixer tank capacitor. 128 * value femtofarads.
     pub mixer_tank_cap: u8,
+
     #[bits(3)]
-    pub mixer_tank_res: u8,
+    /// Resistance in paralle with the transmit mixer tank.
+    pub mixer_tank_res: TxMixerTankResistance,
+
     #[bits(1)]
     #[doc(hidden)]
     pub _unused3: (),
+
     #[bits(2)]
+	/// Transmit PLL bandwidth, (value + 1) * 75 KHz.
     pub pll_bw: u8,
+
     #[bits(5)]
+    /// Transmit analog filter bandwidth (DSB),
+    /// 3 db bandwidth in MHz = 17.15 * (41 - value).
     pub filter_bw: u8,
+
     #[bits(5)]
     #[doc(hidden)]
     pub _unused4: (),
+
     #[bits(3)]
+    /// Number of taps of FIR-DAC.
+    /// number of taps = 24 + (8 * value), maximum is 64.
     pub dac_bw: u8
 }
 
@@ -88,6 +122,7 @@ pub struct TxFrontend {
 pub struct RxFrontend {
     #[bits(3)]
     pub lna_gain: u8,
+
     #[bits(4)]
     pub rx_pga_gain: u8,
     #[bits(1)]
@@ -266,8 +301,12 @@ impl HardRegisters {
     }
 }
 
-// Retain dead code checks for the rest of this library module and mark
-// everything that is exported as used.
+
+#[doc(hidden)]
+/// This function isn't meant to be used. It doesn't do anything but provide
+/// references for the exported code in this module, so that I don't have to
+/// spread #[ignore(dead_code)] all over, and can benefit from dead-code
+/// notification where something is *actually* dead.
 #[allow(dead_code)]
 fn _stub() {
     let reg: HardRegisters = HardRegisters::default();
