@@ -52,7 +52,7 @@ pub struct Version {
 
 #[repr(u8)]
 #[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
-/// Settings for [TxFrontend.tx_mixer_tank_res]
+/// Settings for [TxFrontend::mixer_tank_res]
 pub enum TxMixerTankResistance {
     #[default]
     R950Ohm = 0,
@@ -119,7 +119,7 @@ pub struct TxFrontend {
 
 #[repr(u8)]
 #[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
-/// Settings for [RxFrontend.rx_zin]
+/// Settings for [RxFrontend::rx_zin]
 pub enum RxZIn {
     #[default]
     I50Ohm = 0,
@@ -128,7 +128,7 @@ pub enum RxZIn {
 
 #[repr(u8)]
 #[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
-/// Settings for [RxFrontend.rx_adc_bw]
+/// Settings for [RxFrontend::rx_adc_bw]
 /// The data sheet has a cryptic comment: "use 0x01 instead".
 pub enum RxADCBw {
     #[default]
@@ -139,7 +139,7 @@ pub enum RxADCBw {
 
 #[repr(u8)]
 #[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
-/// Settings for [RxFrontend.rx_pga_bw]
+/// Settings for [RxFrontend::rx_pga_bw]
 pub enum RxPGABw {
     #[default]
     BW1500KHz = 0,
@@ -239,7 +239,8 @@ pub struct IOMap {
 
 #[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 #[repr(u8)]
-/// Values for [ClockSelect.clock_select_tx_dac].
+/// Values for
+/// [ClockSelect::clock_select_tx_dac]
 pub enum ClockSelectTxDAC {
   #[default]
   Internal = 0,
