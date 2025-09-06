@@ -1,6 +1,6 @@
 pub struct Frequency {
   /// The frequency in MHz.
-  frequency: f64,
+  pub frequency: f64,
 }
 
 impl Frequency {
@@ -12,6 +12,7 @@ impl Frequency {
   /// than the resolution of the IC, or zero. The resolution of the IC will be
   /// around 34 Hz, depending on the oscillator crystal.
   pub const fn offset(&self) -> f64 {
+    0.0
   }
 }
 

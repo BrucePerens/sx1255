@@ -53,7 +53,7 @@ pub struct Version {
 #[repr(u8)]
 #[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
 /// Settings for [TxFrontend.tx_mixer_tank_res]
-enum TxMixerTankResistance {
+pub enum TxMixerTankResistance {
     #[default]
     R950Ohm = 0,
     R1110Ohm = 1,
@@ -120,7 +120,7 @@ pub struct TxFrontend {
 #[repr(u8)]
 #[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
 /// Settings for [RxFrontend.rx_zin]
-enum RxZIn {
+pub enum RxZIn {
     #[default]
     I50Ohm = 0,
     I200Ohm = 1,
@@ -130,7 +130,7 @@ enum RxZIn {
 #[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
 /// Settings for [RxFrontend.rx_adc_bw]
 /// The data sheet has a cryptic comment: "use 0x01 instead".
-enum RxADCBw {
+pub enum RxADCBw {
     #[default]
     BWOver400KHz = 7,
     BW200To400KHz = 5,
@@ -140,7 +140,7 @@ enum RxADCBw {
 #[repr(u8)]
 #[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
 /// Settings for [RxFrontend.rx_pga_bw]
-enum RxPGABw {
+pub enum RxPGABw {
     #[default]
     BW1500KHz = 0,
     BW1000KHz = 1,
