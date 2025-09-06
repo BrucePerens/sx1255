@@ -2,7 +2,17 @@
 name = "sx1255"
 version = "0.1.0"
 edition = "2024"
+description = "Rust software for Semtech SX1255."
+repository = "https://github.com/BrucePerens/sx1255"
+authors = [
+  "Bruce Perens <bruce@perens.com>",
+]
+keywords = ["sx1255", "sdr", "software-defined radio", "radio", "transceiver"]
+readme = "README.md"
+documentation = "https://..."
+
+[build]
+rustdocflags = ["--document-private-items"]
 
 [dependencies]
 binary_serde = "1.0.24"
-serde_repr = "0.1.20"

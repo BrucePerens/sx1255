@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"macro":["recursive_array","recursive_array_type_of_size"],"struct":["EmptyRecursiveArray","RecursiveArrayArrayWrapper","RecursiveArrayConcatenation","RecursiveArrayMultiplier","RecursiveArraySingleItem"],"trait":["RecursiveArray"]};

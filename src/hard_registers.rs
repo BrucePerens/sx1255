@@ -1,42 +1,41 @@
-#[allow(unused_imports)]
 use binary_serde::*;
-#[allow(unused_imports)]
-use serde_repr::{Serialize_repr, Deserialize_repr};
-
-/// Hardware registers for the SX1255. These are not directly used by the
-/// programmer, instead module soft_registers and struct SoftRegisters define
-///  a more convenient format with input in the engineer's accustomed units: dB,
-/// femtoFarad, ohm, etc. rather than a binary encoding. SoftRegisters.write
-/// checks a copy of itself that represents the last written value, and updates
-/// the hardware registers as required.
-///
-/// At this writing the SX1255 data sheet was at
-/// https://semtech.my.salesforce.com/sfc/p/#E0000000JelG/a/44000000MDmE/Qs9oRoa8Sbb6mkImE9mtMh47H5LFx6KMbGcpb8L28SE
-/// All the structures and fields correspond to the data sheet names,
-/// in a few places I've attempted to make the names more readable, but they
-/// should still be recognizable. 
-
 
 #[derive(Debug, Default, PartialEq, Eq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
-/// SX1255 hardware mode register.
-pub(crate) struct Mode {
+/// # SX1255 hardware mode register.
+pub struct Mode {
     #[bits(4)]
+    #[doc(hidden)]
     pub _unused: (),
     #[bits(1)]
-    pub driver_enable: bool,/// Power amplifier enable.
+    /// Power amplifier enable.
+    pub driver_enable: bool,
     #[bits(1)]
-    pub tx_enable: bool,	/// Transmit enable _except_ power amplifier.
+    /// Transmit enable _except_ power amplifier.
+    pub tx_enable: bool,
     #[bits(1)]
-    pub rx_enable: bool,	/// Receiver enable.
+    /// Receiver enable.
+    pub rx_enable: bool,
     #[bits(1)]
-    pub ref_enable: bool,	// Enable power supplies and oscillator.
+    /// Enable power supplies and oscillator.
+    pub ref_enable: bool,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
-/// Integer frequency that serializes to 24 bits, as represented on SX1255.
-pub(crate) struct Frequency {
+/// Integer frequency value.
+/// The actual frequency will be
+/// (oscillator_frequency * frequency_value) / 2^20 .
+///
+/// 0xC0E38E is the default value of the hardware register, and should 
+/// result in 434 MHz with a 36 MHz crystal.
+/// The resolution will be 34.3323 Hz if the oscillator is 36 MHz.
+/// This value is read only when it is written and the IC then leaves SLEEP
+/// mode by a translation of
+/// [Mode::ref_enable](self::Mode::ref_enable)
+/// from 0 to 1.
+
+pub struct Frequency {
   #[bits(24)]
   frequency: u32,
 }
@@ -44,26 +43,40 @@ pub(crate) struct Frequency {
 #[derive(Debug, Default, PartialEq, Eq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
 /// SX1255 hardware transmit front-end control register.
-pub(crate) struct TxFrontend {
+pub struct Version {
+    #[bits(4)]
+    fill_revision_number: u8,
+    #[bits(4)]
+    metal_mask_revision_number: u8,
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+#[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
+/// SX1255 hardware transmit front-end control register.
+pub struct TxFrontend {
     #[bits(1)]
+    #[doc(hidden)]
     pub _unused1: (),
     #[bits(3)]
     pub dac_gain: u8,
     #[bits(4)]
     pub mixer_gain: u8,
     #[bits(2)]
+    #[doc(hidden)]
     pub _unused2: (),
     #[bits(3)]
     pub mixer_tank_cap: u8,
     #[bits(3)]
     pub mixer_tank_res: u8,
     #[bits(1)]
+    #[doc(hidden)]
     pub _unused3: (),
     #[bits(2)]
     pub pll_bw: u8,
     #[bits(5)]
     pub filter_bw: u8,
     #[bits(5)]
+    #[doc(hidden)]
     pub _unused4: (),
     #[bits(3)]
     pub dac_bw: u8
@@ -72,7 +85,7 @@ pub(crate) struct TxFrontend {
 #[derive(Debug, Default, PartialEq, Eq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
 /// SX1255 hardware receive front-end control register.
-pub(crate) struct RxFrontend {
+pub struct RxFrontend {
     #[bits(3)]
     pub lna_gain: u8,
     #[bits(4)]
@@ -86,6 +99,7 @@ pub(crate) struct RxFrontend {
     #[bits(2)]
     pub rx_pga_bw: u8,
     #[bits(5)]
+    #[doc(hidden)]
     pub _unused: (),
     #[bits(2)]
     pub rx_pll_bw: u8,
@@ -95,7 +109,7 @@ pub(crate) struct RxFrontend {
 
 #[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 #[repr(u8)]
-pub(crate) enum IOMap0 {
+pub enum IOMap0 {
   #[default]
   PLLLockRx = 0,
   PLLLockRx1 = 1,
@@ -105,21 +119,21 @@ pub(crate) enum IOMap0 {
 
 #[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 #[repr(u8)]
-pub(crate) enum IOMap1 {
+pub enum IOMap1 {
   #[default]
   PLLLockTx = 0,
 }
 
 #[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 #[repr(u8)]
-pub(crate) enum IOMap2 {
+pub enum IOMap2 {
   #[default]
   XOscReady = 0,
 }
 
 #[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 #[repr(u8)]
-pub(crate) enum IOMap3 {
+pub enum IOMap3 {
   #[default]
   PLLLockRxTx = 0,
 }
@@ -127,7 +141,7 @@ pub(crate) enum IOMap3 {
 #[derive(Debug, Default, Eq, PartialEq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
 /// SX1255 hardware mapping of the 4 DIO pins.
-pub(crate) struct IOMap {
+pub struct IOMap {
     #[bits(2)]
     pub iomap0: IOMap0,
     #[bits(2)]
@@ -141,8 +155,9 @@ pub(crate) struct IOMap {
 #[derive(Debug, Default, Eq, PartialEq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
 /// SX1255 hardware mapping of clock select and loop-back modes.
-pub(crate) struct ClockSelect {
+pub struct ClockSelect {
     #[bits(4)]
+    #[doc(hidden)]
     _unused: (),
     #[bits(1)]
     pub dig_loopback_enable: bool,
@@ -157,8 +172,9 @@ pub(crate) struct ClockSelect {
 #[derive(Debug, Default, Eq, PartialEq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
 /// SX1255 hardware mapping of status bits.
-pub(crate) struct Status {
+pub struct Status {
     #[bits(4)]
+    #[doc(hidden)]
     _unused: (),
     #[bits(1)]
     eol: bool,
@@ -172,7 +188,7 @@ pub(crate) struct Status {
 
 #[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 #[repr(u8)]
-pub(crate) enum IISMMode {
+pub enum IISMMode {
   #[default]
   A = 0,
   B1 = 1,
@@ -182,7 +198,7 @@ pub(crate) enum IISMMode {
 #[derive(Debug, Default, Eq, PartialEq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
 /// SX1255 hardware mapping of status bits.
-pub(crate) struct IISM {
+pub struct IISM {
   #[bits(1)]
   rx_during_tx_disable: bool,
   #[bits(1)]
@@ -196,32 +212,29 @@ pub(crate) struct IISM {
 #[derive(Debug, Default, Eq, PartialEq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
 /// SX1255 hardware mapping of status bits.
-pub(crate) struct DigBridge {
-  #[bits(1)]
-  int_dec_mantissa: u8,
-  #[bits(1)]
-  int_dec_m_parameter: u8,
-  #[bits(3)]
-  int_dec_n_parameter: u8,
-  #[bits(1)]
-  iism_truncation: bool,
-  #[bits(1)]
-  iism_status: bool,
-  #[bits(1)]
-  _unused: (),
+pub struct DigBridge {
+    #[bits(1)]
+    int_dec_mantissa: u8,
+    #[bits(1)]
+    int_dec_m_parameter: u8,
+    #[bits(3)]
+    int_dec_n_parameter: u8,
+    #[bits(1)]
+    iism_truncation: bool,
+    #[bits(1)]
+    iism_status: bool,
+    #[bits(1)]
+    #[doc(hidden)]
+    _unused: (),
 }
 
-/// This holds all of the hardware versions of the SX1255 registers. It's
-/// only used by soft_registers::SoftRegisters.write(), which serializes a
-/// soft representation of the registers in the engineer's accustomed units
-/// (dB, etc.)into a bit vector representing the hardware encoding, and
-/// suitable for writing to the SX1255.
+#[doc = include_str!("../markdown/hard_registers.md")]
 #[derive(Debug, Default, Eq, PartialEq)]
-pub(crate) struct HardRegisters {
+pub struct HardRegisters {
     pub mode: Mode,
     pub rx: Frequency,
     pub tx: Frequency,
-    pub version: u8,
+    pub version: Version,
     pub tx_frontend: TxFrontend,
     pub rx_frontend: RxFrontend,
     pub io_map: IOMap,
