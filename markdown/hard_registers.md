@@ -5,7 +5,9 @@ actual hardware registers. The Rust data structures differ from the actual
 hardware registers where the data sizes are not directly supported by Rust,
 for example frequencies on the SX1255 are 24 bits, and the Rust type for
 them is a [std::primitive::u32]. Nor does Rust natively support bit-fields.
-The HardRegisters::serialize function serializes the data to fit the actual
+The
+[HardRegisters::serialize](fn@crate::hard_registers::HardRegisters::serialize)
+function serializes the data to fit the actual
 register formats. 
 
 Some of these structures are not directly used by the
