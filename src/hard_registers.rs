@@ -7,15 +7,19 @@ pub struct Mode {
     #[bits(4)]
     #[doc(hidden)]
     pub _unused: (),
+
     #[bits(1)]
     /// Power amplifier enable.
     pub driver_enable: bool,
+
     #[bits(1)]
     /// Transmit enable _except_ power amplifier.
     pub tx_enable: bool,
+
     #[bits(1)]
     /// Receiver enable.
     pub rx_enable: bool,
+
     #[bits(1)]
     /// Enable power supplies and oscillator.
     pub ref_enable: bool,
@@ -421,7 +425,7 @@ pub enum ThresholdValue {
 /// This is not documented for SX1255.
 pub struct LowBatteryThreshold {
     #[bits(5)]
-    _unused: u8,
+    _unused: (),
 
     #[bits(3)]
     pub threshold: ThresholdValue,
