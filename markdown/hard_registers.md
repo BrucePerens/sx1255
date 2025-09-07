@@ -1,6 +1,6 @@
-# Semtech SX1255 Hardware Registers
+# Semtech SX1255/SX1257 Hardware Registers
 This module contains structures *similar* to the the hardware registers as
-used on the SX1255, and software to serialize them to the format of the
+used on the SX1255/SX1257, and software to serialize them to the format of the
 actual hardware registers. The Rust data structures differ from the actual
 hardware registers where the data sizes are not directly supported by Rust,
 for example frequencies on the SX1255 are 24 bits, and the Rust type for

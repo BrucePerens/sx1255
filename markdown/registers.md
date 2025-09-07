@@ -1,4 +1,4 @@
-# Soft representation of Semtech SX1255 registers.
+# Soft representation of Semtech SX1255/SX1257 registers.
 Rather than use the data formatting of the IC, this soft representation
 of the registers uses
 units familiar to engineers, like dB, femtofarad, ohm, etc. This keeps

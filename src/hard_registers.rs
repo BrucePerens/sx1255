@@ -400,6 +400,33 @@ pub struct DigBridge {
     _unused: (),
 }
 
+#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
+#[repr(u8)]
+/// Values for [LowBatteryThreshold::threshold]
+pub enum ThresholdValue {
+  #[default]
+  V2_516 = 0,
+  V2_619 = 1,
+  V2_724 = 2,
+  V2_829 = 3,
+  V2_935 = 4,
+  V3_037 = 5,
+  V3_143 = 6,
+  V3_245 = 7,
+}
+
+#[derive(Debug, Default, Eq, PartialEq)]
+#[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
+/// SX1257 hardware mapping of low battery threshold register.
+/// This is not documented for SX1255.
+pub struct LowBatteryThreshold {
+    #[bits(5)]
+    _unused: u8,
+
+    #[bits(3)]
+    pub threshold: ThresholdValue,
+}
+
 #[doc = include_str!("../markdown/hard_registers.md")]
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct HardRegisters {
