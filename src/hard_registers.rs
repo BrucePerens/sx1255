@@ -1,8 +1,13 @@
+// Copyright (C) 2025 Bruce Perens
+// All Rights Reserved
+// This software is not presently under an Open Source license, I'll consider
+// what to do about that if someone pays me to do so, or when I'm done.
+
 use binary_serde::*;
 
 #[derive(Debug, Default, PartialEq, Eq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
-/// # SX1255 hardware mode register.
+/// # Operating modes of the IC.
 pub struct Mode {
     #[bits(4)]
     #[doc(hidden)]
@@ -21,23 +26,40 @@ pub struct Mode {
     pub rx_enable: bool,
 
     #[bits(1)]
-    /// Enable power supplies and oscillator.
-    pub ref_enable: bool,
+    /// Enable power supplies and oscillator in standby mode.
+    pub standby_enable: bool,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
 /// Integer frequency value.
-/// The actual frequency will be
-/// (oscillator_frequency * frequency_value) / 2^20 .
+/// To calculate the frequency, first find the step resolution.
+/// for SX1255 step_frequency = oscillator_frequency / 2^20. 
+/// for SX1257 step_frequency = the oscillator_frequency / 2^19. 
+/// The frequency will be step_frequency * value.
+/// The oscillator frequency may be 32 MHz to 36.864 MHz. It is useful,
+/// for frequency accuracy, to measure and store the actual oscillator
+/// frequency, rather than count on the oscillator to have the exact
+/// frequency specified.
+///
+/// The oscillator cold-start time is 300µs, the frequency synthesizer
+/// wake-up is 50-150µs, and hop time is 20µs for steps as large as 400 KHz,
+/// 30µs for 1.2 MHz, 50µs for 25 MHz. The PLL ready indication can be mapped
+/// to the digital-IO pins and CPU GPIO inputs can be set up generate an
+// interrupt when the synthesizer is ready. VCOs operate at twice the RF
+/// frequency for SX1257, and four times for SX1255, centered at 1.9 GHz.
 ///
 /// 0xC0E38E is the default value of the hardware register, and should 
-/// result in 434 MHz with a 36 MHz crystal.
-/// The resolution will be 34.3323 Hz if the oscillator is 36 MHz.
-/// This value is read only when it is written and the IC then leaves SLEEP
-/// mode by a translation of
-/// [Mode::ref_enable](self::Mode::ref_enable)
+/// result in 434 MHz on SX1255 with a 36 MHz crystal, 868 on SX1257.
+/// The step resolution will be 34.3323 Hz on SX1255 if the oscillator is 36 MHz,
+/// 38.6646 on SX1257.
+/// This value is read only when the least significant byte is written to
+/// the IC, OR when the IC enters STANDBY mode from SLEEP mode by a
+/// transition of
+/// [Mode::ref_enable](self::Mode::standby_enable)
 /// from 0 to 1.
+/// Writing the IC hardware frequency value can be used for frequency hopping,
+/// scanning, etc.
 
 pub struct Frequency {
   #[bits(24)]
@@ -46,11 +68,14 @@ pub struct Frequency {
 
 #[derive(Debug, Default, PartialEq, Eq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
-/// SX1255 hardware transmit front-end control register.
+/// Version data.
 pub struct Version {
     #[bits(4)]
+    /// 1 for SX1255, this register is not documented for SX1257.
     fill_revision_number: u8,
+
     #[bits(4)]
+    /// 0xA for SX1255, this register is not documented for SX1257.
     metal_mask_revision_number: u8,
 }
 
@@ -109,14 +134,16 @@ pub struct TxFrontend {
     pub _unused3: (),
 
     #[bits(2)]
-	/// Transmit PLL bandwidth, (value + 1) * 75 KHz.
+	/// Transmit PLL loop filter bandwidth, (value + 1) * 75 KHz.
     pub pll_bw: u8,
 
     #[bits(5)]
     /// The transmit I/Q filters remove quantization noise created by the
     /// transmit I/Q FIR DACs.
     /// Transmit analog filter 3 db DSB bandwidth in MHz = 
-    /// 17.15 * (41 - value).
+    /// 17.15 * (41 - value). This value has 30% accuracy.
+    /// The filter bandwidth should be set for wider than the transmit
+    /// bandwidth to reduce group-delay issues.
     pub filter_bw: u8,
 
     #[bits(5)]
@@ -126,6 +153,11 @@ pub struct TxFrontend {
     #[bits(3)]
     /// Number of taps of the Transmit I/Q filters.
     /// number of taps = 24 + (8 * value), maximum is 64.
+    /// 1 would be an SSB filter 3 dB bandwidth of 450 KHz,
+    /// 5 would be an SSB filter 3 dB bandwidth of 290 KHz.
+    /// Reducing bandwidth is useful for reducing quantization noise.
+    /// The filter bandwidth should be set for wider than the transmit
+    /// bandwidth to reduce group-delay issues.
     pub dac_bw: u8
 }
 
@@ -167,6 +199,9 @@ pub struct RxFrontend {
     #[bits(3)]
     /// Receive LNA gain. Values 0 and 7 are not used. Value 1 is 0 dB, and
     /// gain descends in -6 dB steps until value 6 is -48 dB
+    /// This effects both the receiver noise figure and IP3, receiver performance
+    /// will be best with this value at minimum, see the RX Front-End
+    /// specification in the data sheet.
     pub lna_gain: u8,
 
     #[bits(4)]
@@ -196,16 +231,22 @@ pub struct RxFrontend {
     pub _unused: (),
 
     #[bits(2)]
-    /// Receive PLL bandwidth. bandwidth = (value + 1) * 75 KHz.
+    /// Receive PLL loop filter bandwidth. bandwidth = (value + 1) * 75 KHz.
+    /// Wider bandwidth reduces lock time while increasing spurs and noise.
     pub rx_pll_bw: u8,
 
     #[bits(1)]
     /// Puts the receive ADC into temperature-measurement mode.
+    /// The response of the sensor is -1C/Lsb. Measurement happens
+    /// in less than 100μs. CMOS temperature
+    /// measurement is inherently inaccurate and this should be
+    /// calibrated against an external temperature measurement of
+    /// the IC.
     pub rx_adc_temp: bool,
 }
 
-#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 #[repr(u8)]
+#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 pub enum IOMap0 {
   #[default]
   PLLLockRx = 0,
@@ -214,24 +255,29 @@ pub enum IOMap0 {
   Eol = 3
 }
 
-#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 #[repr(u8)]
+#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 pub enum IOMap1 {
   #[default]
   PLLLockTx = 0,
 }
 
-#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 #[repr(u8)]
+#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 pub enum IOMap2 {
   #[default]
   XOscReady = 0,
 }
 
-#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 #[repr(u8)]
+#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 pub enum IOMap3 {
   #[default]
+  /// DIO3 carries PLL lock Tx in transmit mode, PLL lock Rx in receive
+  /// mode. This is confusing since the IC has duplex mode. It might be
+  /// best to map PLL lock Rx to DIO0 and Pll lock Tx to DIO1, at the
+  /// expense of losing the low-battery indication, which can be polled
+  /// from the status register.
   PLLLockRxTx = 0,
 }
 
@@ -249,13 +295,15 @@ pub struct IOMap {
     pub iomap3: IOMap3,
 }
 
-#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 #[repr(u8)]
-/// Values for
+#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
+/// This selects the clock for the transmit DAC only. For synchronization,
+/// it's recommended to use the internal clock, so that the transmit DAC
+/// and the I²S interface will be synchronized.
 /// [ClockSelect::clock_select_tx_dac]
 pub enum ClockSelectTxDAC {
   #[default]
-  Internal = 0,
+  Internal = 0, // Recommended.
   External = 1,
 }
 
@@ -272,6 +320,10 @@ pub struct ClockSelect {
 
     #[bits(1)]
     /// Enables the RF loop-back mode of the front-end.
+    /// This can be used by software to calibrate receiver and transmitter
+    /// I/Q gain mismatch and phase imbalance, and transmitter
+    /// DC offset.
+    /// 
     pub rf_loopback_enable: bool,
 
     #[bits(1)]
@@ -308,17 +360,44 @@ pub struct Status {
     pub pll_lock_tx: bool,
 }
 
-#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 #[repr(u8)]
+#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 pub enum IISMMode {
   #[default]
+  /// In mode A, the IQ signals are directly from the sigma-delta modulator
+  /// in receive, and to the FIR-DAC in transmit.
   A = 0,
+
+  /// In mode B1, the IQ signals are pre and post-processed by the
+  /// internal digital bridge, decimated on receive and interpolated
+  /// upon transmit. Data I/O is to the I_IN, Q_IN, I_OUT, and Q_OUT
+  /// pins.
+  /// Full duplex is possible, with input and output running simultaneously,
+  /// probably requiring two CPU I²S interfaces.
+  /// DIO2 carries the WS pin, WS is one CLOCK_OUT period ahead of time.
+  ///
+  /// See the datasheet section on TX Noise Shaper to understand the
+  /// preprocessing requirements for transmit data.
   B1 = 1,
+ 
+  /// In mode B2, the IQ signals are pre and post-processed by the
+  /// internal digital bridge, decimated on receive and interpolated
+  /// upon transmit. Data I/O is to the I_IN, and I_OUT pins, with I
+  /// and Q data interleaved.
+  /// Full duplex is possible, with input and output running simultaneously,
+  /// probably requiring two CPU I²S interfaces.
+  /// DIO2 carries the WS pin, which is asserted
+  /// once per IQ pair, WS=0 corresponds to I, WS=1 to Q.
+  /// WS is one CLOCK_OUT period ahead of time. This is most compatible with
+  /// I²S implementations of CPUs.
+  ///
+  /// See the datasheet section on TX Noise Shaper to understand the
+  /// preprocessing requirements for transmit data.
   B2 = 2,
 }
 
-#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 #[repr(u8)]
+#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 pub enum IISMClockDiv {
   #[default]
   D0 = 0,
@@ -349,24 +428,30 @@ pub struct IISM {
   pub clock_div: IISMClockDiv
 }
 
-#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 #[repr(u8)]
+#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 /// Values for [DigBridge::int_dec_mantissa]
 pub enum IntDecMantissa {
   #[default]
-  /// Mantissa is 8.
+  /// Mantissa is 8. Interpolation increases the effective number of data
+  /// bits, the effective bits per interpolation/decimation are from
+  /// the first set of tables in the Mode B section of the data sheet.
   M8 = 0,
-  /// Mantissa is 9.
+
+  /// Mantissa is 9. Interpolation increases the effective number of data
+  /// bits, the effective bits per interpolation/decimation are from
+  /// the second set of tables in Mode B section of the data sheet.
   M9 = 1,
 }
 
-#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 #[repr(u8)]
+#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 /// Values for [DigBridge::iism_truncation]
 pub enum IISMTruncation {
   #[default]
   /// Truncate MSB, align upon LSB.
   MSB = 0,
+
   /// Truncate LSB, align upon MSB.
   LSB = 1,
 }
@@ -378,6 +463,14 @@ pub struct DigBridge {
     #[bits(1)]
     /// Interpolation / Decimation factor = mantissa * 3^m * 2^n
     /// mantissa: 0 = 8, 1 = 9
+    ///
+    /// See the data sheet on Mode B for the number of effective DAC
+    /// bits per sample, for each interpolation/decimation.
+    ///
+    /// In duplex mode, receive and transmit interpolation must be
+    /// identical to keep the input and output I²S in sync. So, the
+    /// interpolation and decimation parameters are not set independently
+    /// for transmit and receive.
     pub int_dec_mantissa: IntDecMantissa,
 
     #[bits(1)]
@@ -391,7 +484,10 @@ pub struct DigBridge {
     pub int_dec_n_parameter: u8,
 
     #[bits(1)]
-    /// IISM truncation. 0 = truncate MSB, align on LSB.
+    /// IISM truncation. The parallel data bus is expected to be 32 bits,
+    /// but the effective number of data bits from interpolation/decimation
+    /// is different. Thus, there are two truncation modes here.
+    /// 0 = truncate MSB, align on LSB.
     /// 1 = truncate LSB, align on MSB.
     pub iism_truncation: IISMTruncation,
 
@@ -404,8 +500,8 @@ pub struct DigBridge {
     _unused: (),
 }
 
-#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 #[repr(u8)]
+#[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 /// Values for [LowBatteryThreshold::threshold]
 pub enum ThresholdValue {
   #[default]
