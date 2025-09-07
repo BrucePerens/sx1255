@@ -52,8 +52,13 @@ pub struct Version {
 
 #[repr(u8)]
 #[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
-/// Settings for [TxFrontend::mixer_tank_res]
+/// Settings for [TxFrontend::mixer_tank_resistance]
 // Toto, I have a feeling we're not in ASCII any longer. 😉
+// Rust is programmed in unicode, so we might as well use it.
+// The version of tx_mixer_tank_resistance in
+// [crate::registers::TxFrontend] will directly take
+// integer resistance values and convert them to these values, nobody
+// else will have to find Ω on the keyboard.
 pub enum TxMixerTankResistance {
     #[default]
     Ω950 = 0,
@@ -63,7 +68,7 @@ pub enum TxMixerTankResistance {
     Ω2180 = 4,
     Ω3240 = 5,
     Ω6000 = 6,
-    Ω64000 = 7
+    Ω64000 = 7 // Resistance "off", approximate value.
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -93,7 +98,7 @@ pub struct TxFrontend {
 
     #[bits(3)]
     /// Resistance in paralle with the transmit mixer tank.
-    pub mixer_tank_res: TxMixerTankResistance,
+    pub mixer_tank_resistance: TxMixerTankResistance,
 
     #[bits(1)]
     #[doc(hidden)]
