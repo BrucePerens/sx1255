@@ -95,27 +95,6 @@ pub struct Version {
     metal_mask_revision_number: u8,
 }
 
-#[repr(u8)]
-#[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
-/// Settings for [TxFrontend::mixer_tank_resistance]
-// Toto, I have a feeling we're not in ASCII any longer. 😉
-// Rust is programmed in unicode, so we might as well use it.
-// The version of tx_mixer_tank_resistance in
-// [crate::registers::TxFrontend] will directly take
-// integer resistance values and convert them to these values, nobody
-// else will have to find Ω on the keyboard.
-pub enum TxMixerTankResistance {
-    #[default]
-    Ω950 = 0,
-    Ω1110 = 1,
-    Ω1320 = 2,
-    Ω1650 = 3,
-    Ω2180 = 4,
-    Ω3240 = 5,
-    Ω6000 = 6,
-    Ω64000 = 7 // Resistance "off", approximate value.
-}
-
 #[derive(Debug, Default, PartialEq, Eq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
 /// SX1255 hardware transmit front-end control register.
@@ -133,6 +112,29 @@ pub struct TxFrontend {
     /// Transmit mixer gain. 37.5 + (2 * value) dB. 2 dB steps.
     pub mixer_gain: u8,
 
+}
+
+#[repr(u8)]
+#[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
+/// Settings for [TxFrontend1255::mixer_tank_resistance]
+/// This feature is documented only for SX1255.
+pub enum TxMixerTankResistance {
+    #[default]
+    Ω950 = 0,
+    Ω1110 = 1,
+    Ω1320 = 2,
+    Ω1650 = 3,
+    Ω2180 = 4,
+    Ω3240 = 5,
+    Ω6000 = 6,
+    Ω64000 = 7 // Resistance "off", approximate value.
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+#[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
+/// Hardware transmit front-end control register items documented only for the
+/// SX1255.
+pub struct TxFrontend1255 {
     #[bits(2)]
     #[doc(hidden)]
     pub _unused2: (),
@@ -142,7 +144,7 @@ pub struct TxFrontend {
     pub mixer_tank_cap: u8,
 
     #[bits(3)]
-    /// Resistance in paralle with the transmit mixer tank.
+    /// Resistance in parallel with the transmit mixer tank.
     pub mixer_tank_resistance: TxMixerTankResistance,
 
     #[bits(1)]
@@ -189,12 +191,25 @@ pub enum RxZIn {
 #[repr(u8)]
 #[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
 /// Settings for [RxFrontend::rx_adc_bw]
-/// The data sheet has a cryptic comment: "use 0x01 instead".
+/// The SX1255 data sheet has a cryptic comment: "use 0x01 instead". This
+/// is not present in the SX1257 data sheet.
 pub enum RxADCBw {
     #[default]
     BWOver400KHz = 7,
     BW200To400KHz = 5,
     BW100To400KHz = 2,
+}
+
+#[repr(u8)]
+#[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
+/// Settings for [RxFrontend::rx_adc_trim]
+pub enum RxADCTrim {
+    /// Value for use with a 32 MHz clock crystal.
+    XTal32Mhz = 6,
+
+    #[default]
+    /// Value for use with a 36 MHz clock crystal.
+    XTal36MHz = 5,
 }
 
 #[repr(u8)]
@@ -221,9 +236,9 @@ pub struct RxFrontend {
     pub lna_gain: u8,
 
     #[bits(4)]
-    /// Receive programmable gain amplifier gain.
+    /// Receive baseband amplifier gain.
     /// gain = lowest gain + (2 dB * value)
-    pub rx_pga_gain: u8,
+    pub rx_baseband_gain: u8,
 
     #[bits(1)]
     /// Receiver input impedance. 0 is 50 ohm, 1 is 200 ohm.
@@ -235,8 +250,8 @@ pub struct RxFrontend {
     pub rx_adc_bw: RxADCBw,
 
     #[bits(3)]
-    /// Receive ADC trim for 36 MHz crystal. Defaults to 5.
-    pub rx_adc_trim: u8,
+    /// Receive ADC trim for crystal.
+    pub rx_adc_trim: RxADCTrim,
 
     #[bits(2)]
     /// Receive programmable gain amplifier bandwidth.
@@ -263,8 +278,11 @@ pub struct RxFrontend {
 
 #[repr(u8)]
 #[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
+/// Values for [IOMap::iomap0]. Do we want to see PLL lock Rx on DIO pin 0,
+/// or EOL (which indicates battery low).
 pub enum IOMap0 {
   #[default]
+  /// Present PLL lock Rx on DIO 0 when in receive mode.
   PLLLockRx = 0,
   PLLLockRx1 = 1,
   PLLLockRx2 = 2,
@@ -273,23 +291,28 @@ pub enum IOMap0 {
 
 #[repr(u8)]
 #[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
+/// Values for [IOMap::iomap1]. Only one documented setting.
 pub enum IOMap1 {
   #[default]
+  /// Present PLL lock Tx when on DIO 1 when in transmit mode.
   PLLLockTx = 0,
 }
 
 #[repr(u8)]
 #[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
+/// Values for [IOMap::iomap2]. Only one documented setting.
 pub enum IOMap2 {
   #[default]
+  /// Present osciallator ready on DIO 2 when in standby mode.
   XOscReady = 0,
 }
 
 #[repr(u8)]
 #[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
+/// Values for [IOMap::iomap3]. Only one documented setting.
 pub enum IOMap3 {
   #[default]
-  /// DIO3 carries PLL lock Tx in transmit mode, PLL lock Rx in receive
+  /// DIO3 presents PLL lock Tx in transmit mode, PLL lock Rx in receive
   /// mode. This is confusing since the IC has duplex mode. It might be
   /// best to map PLL lock Rx to DIO0 and Pll lock Tx to DIO1, at the
   /// expense of losing the low-battery indication, which can be polled
@@ -299,7 +322,11 @@ pub enum IOMap3 {
 
 #[derive(Debug, Default, Eq, PartialEq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
-/// SX1255 hardware mapping of the 4 DIO pins.
+/// SX1255 hardware mapping of the 4 DIO pins. This isn't terribly useful
+/// as documented, it may be that there were broken features that ended up
+/// not being documented, similarly to how the entire digital bridge and
+/// interpolation decimation feature appear to have been deleted for SX1257.
+/// 
 pub struct IOMap {
     #[bits(2)]
     pub iomap0: IOMap0,
@@ -313,10 +340,10 @@ pub struct IOMap {
 
 #[repr(u8)]
 #[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
+/// Values for [ClockSelect::clock_select_tx_dac]
 /// This selects the clock for the transmit DAC only. For synchronization,
 /// it's recommended to use the internal clock, so that the transmit DAC
 /// and the I²S interface will be synchronized.
-/// [ClockSelect::clock_select_tx_dac]
 pub enum ClockSelectTxDAC {
   #[default]
   Internal = 0, // Recommended.
@@ -378,6 +405,11 @@ pub struct Status {
 
 #[repr(u8)]
 #[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
+/// Values for [IISM::mode]. This register is documented for SX1255 but
+/// not for SX1257, thus SX1257 is always in mode A. Since it was dropped
+/// in SX1257, this may be an indication that this feature is problematic.
+/// We can do interpolation and decimation in software, at the expense of
+/// greater CPU, memory, and I/O use.
 pub enum IISMMode {
   #[default]
   /// In mode A, the IQ signals are directly from the sigma-delta modulator
@@ -414,6 +446,8 @@ pub enum IISMMode {
 
 #[repr(u8)]
 #[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
+/// Values for [IISM::clock_div]. This is the oscillator_frequency / CLK_OUT
+/// division factor. This feature is not documented for SX1257.
 pub enum IISMClockDiv {
   #[default]
   D0 = 0,
@@ -429,15 +463,22 @@ pub enum IISMClockDiv {
 
 #[derive(Debug, Default, Eq, PartialEq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
-/// SX1255 hardware mapping of IO control.
+/// SX1255 hardware mapping of IO control. This feature is not documented
+/// for SX1257.
 pub struct IISM {
   #[bits(1)]
+  /// If enabled, don't output receive data during transmit.
   pub rx_during_tx_disable: bool,
 
   #[bits(1)]
+  /// If enabled, don't input transmit data during receive.
   pub tx_during_rx_disable: bool,
 
   #[bits(2)]
+  /// I²S communication modes. SX1257 doesn't document this register, thus
+  /// is always in Mode A, with interpolation/decimation disabled. SX1255
+  /// has two modes in which it performs interpolation/decimation, one with
+  /// a separate stream for I and Q, one which interleaves them.
   pub mode: IISMMode,
 
   #[bits(4)]
@@ -446,7 +487,7 @@ pub struct IISM {
 
 #[repr(u8)]
 #[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
-/// Values for [DigBridge::int_dec_mantissa]
+/// Values for [DigitalBridge::int_dec_mantissa]
 pub enum IntDecMantissa {
   #[default]
   /// Mantissa is 8. Interpolation increases the effective number of data
@@ -462,7 +503,8 @@ pub enum IntDecMantissa {
 
 #[repr(u8)]
 #[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
-/// Values for [DigBridge::iism_truncation]
+/// Values for [DigitalBridge::iism_truncation]. This feature is not documented
+/// for SX1257.
 pub enum IISMTruncation {
   #[default]
   /// Truncate MSB, align upon LSB.
@@ -474,8 +516,8 @@ pub enum IISMTruncation {
 
 #[derive(Debug, Default, Eq, PartialEq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
-/// SX1255 hardware mapping of status bits.
-pub struct DigBridge {
+/// SX1255 
+pub struct DigitalBridge {
     #[bits(1)]
     /// Interpolation / Decimation factor = mantissa * 3^m * 2^n
     /// mantissa: 0 = 8, 1 = 9
@@ -519,22 +561,31 @@ pub struct DigBridge {
 #[repr(u8)]
 #[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
 /// Values for [LowBatteryThreshold::threshold]
+/// This feature is only documented for SX1257.
 pub enum ThresholdValue {
   #[default]
+  /// 2.516 volts.
   V2_516 = 0,
+  /// 2.619 volts.
   V2_619 = 1,
+  /// 2.724 volts.
   V2_724 = 2,
+  /// 2.829 volts.
   V2_829 = 3,
+  /// 2.935 volts.
   V2_935 = 4,
+  /// 3.037 volts.
   V3_037 = 5,
+  /// 3.143 volts.
   V3_143 = 6,
+  /// 3.245 volts.
   V3_245 = 7,
 }
 
 #[derive(Debug, Default, Eq, PartialEq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
-/// SX1257 hardware mapping of low battery threshold register.
-/// This is not documented for SX1255.
+/// SX1257 hardware mapping of low battery threshold register, at
+/// location 0x1A. This is not documented for SX1255.
 pub struct LowBatteryThreshold {
     #[bits(5)]
     _unused: (),
@@ -551,45 +602,71 @@ pub struct HardRegisters {
     pub tx: Frequency,
     pub version: Version,
     pub tx_frontend: TxFrontend,
+    pub tx_frontend_1255: TxFrontend1255,
     pub rx_frontend: RxFrontend,
     pub io_map: IOMap,
     pub clock_select: ClockSelect,
     pub status: Status,
     pub iism: IISM,
-    pub dig_bridge: DigBridge,
+    pub digital_bridge: DigitalBridge,
+    pub low_battery_threshold: LowBatteryThreshold,
+}
+
+#[repr(u8)]
+#[derive(Debug, Default, PartialEq, Eq)]
+pub enum ICVersion {
+    #[default]
+    SX1255 = 0,
+    SX1257 = 1,
 }
 
 impl HardRegisters {
-    pub fn serialize(&self, bytes: &mut [u8; 20]) {
-        // There is probably a better way to do this with BinarySerdeBufSafe
-        // and traits, but I haven't out how to do that yet. In the meantime,
-        // this should run at least as quickly and well, but the code makes use
-        // of ranges derived from the packed size of the individual structs that
-        // we could avoid.
+    pub fn serialize(&self, bytes: &mut [u8; 0x1B], ic_version: ICVersion) {
+        // There might be a more idiomatic way to do this with BinarySerdeBufSafe
+        // and traits, but it probably would work on all fields, and it's
+        // necessary to exclude some for different IC versions.
         const E : binary_serde::Endianness = Endianness::Big;
         self.mode.binary_serialize(&mut bytes[0..=0], E);
         self.rx.binary_serialize(&mut bytes[1..=3], E);
         self.tx.binary_serialize(&mut bytes[4..=6], E);
         self.version.binary_serialize(&mut bytes[7..=7], E);
-		self.tx_frontend.binary_serialize(&mut bytes[8..=0xB], E);
+		self.tx_frontend.binary_serialize(&mut bytes[8..=9], E);
+
+        if ic_version == ICVersion::SX1255 {
+		    self.tx_frontend_1255.binary_serialize(&mut bytes[0xA..=0xB], E);
+        }
+        else {
+            bytes[0xA..0xB].fill(0);
+        }
+
         self.rx_frontend.binary_serialize(&mut bytes[0xC..=0xE], E);
         self.io_map.binary_serialize(&mut bytes[0xF..=0xF], E);
         self.clock_select.binary_serialize(&mut bytes[0x10..=0x10], E);
         self.status.binary_serialize(&mut bytes[0x11..=0x11], E);
-        self.iism.binary_serialize(&mut bytes[0x12..=0x12], E);
-        self.dig_bridge.binary_serialize(&mut bytes[0x13..=0x13], E);
-    }
+
+        match ic_version {
+            ICVersion::SX1257 => {
+                bytes[0x12..=0x19].fill(0);
+                self.low_battery_threshold.binary_serialize(&mut bytes[0x1A..=0x1A], E);
+            }
+            ICVersion::SX1255 => {
+                self.iism.binary_serialize(&mut bytes[0x12..=0x12], E);
+                self.digital_bridge.binary_serialize(&mut bytes[0x13..=0x13], E);
+                bytes[0x14..=0x1A].fill(0);
+            }
+        }
+	}
 }
 
 
 #[doc(hidden)]
-/// This function isn't meant to be used. It doesn't do anything but provide
+/// This function isn't meant to be used. It provides
 /// references for the exported code in this module, so that I don't have to
 /// spread #[allow(dead_code)] all over, just in one place here, and can benefit
 /// from dead-code notification where something is *actually* dead.
 #[allow(dead_code)]
 fn _stub() {
     let reg: HardRegisters = HardRegisters::default();
-    let mut data: [u8; 20] = [0; 20];
-    reg.serialize(&mut data);
+    let mut data: [u8; 0x1B] = [0; 0x1B];
+	reg.serialize(&mut data, ICVersion::SX1255);
 }

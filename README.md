@@ -9,6 +9,10 @@ capability. Together with a system-on-a-chip CPU module and a minimum of
 additional components, they are a complete SDR transceiver, potentially with
 a GUI, local wireless networking, and other features.
 
+The SX1255 data sheet documents a digital bridge with an
+interpolation/decimation capability. The SX1257 data sheet does not document
+this capability.
+
 If you aren't using the full-duplex capability (or possibly even if you are, by
 multiplexing) it is also possible to use it to sample your power amplifier for
 pre-distortion, since the system is capable of producing modulations that
