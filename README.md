@@ -14,7 +14,7 @@ multiplexing) it is also possible to use it to sample your power amplifier for
 pre-distortion, since the system is capable of producing modulations that
 require excellent linearity.
 
-Rustdoc API Documentation is [here](BrucePerens.github.io/sx1255-doc).
+Rustdoc API Documentation is [here](https://bruceperens.github.io/sx1255-doc.github.io/sx1255/index.html)
 
 This is a work-in-progress that I created for my own education, and is not
 proposed for any project at this time, although it is obviously inspired

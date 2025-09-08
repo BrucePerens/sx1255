@@ -8,6 +8,21 @@ use binary_serde::*;
 #[derive(Debug, Default, PartialEq, Eq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
 /// # Operating modes of the IC.
+///
+/// When none of these enables are true, the IC is in SLEEP mode.
+///
+/// In sleep mode, the IC draws a maximum of 1µA and typically 0.2µA. So, no
+/// power switch should be necessary for it.
+///
+/// In STANDBY mode, typically 1.15mA and maximum 1.5mA are drawn.
+///
+/// In RECEIVE mode, typically 18mA and maximum 25mA are drawn.
+///
+/// In TRANSMIT mode, typically 60mA and maximum 90mA are drawn.
+///
+/// If the transmit VCO is already stable, transmit wake-up should take
+/// about 120µs
+///
 pub struct Mode {
     #[bits(4)]
     #[doc(hidden)]
@@ -27,6 +42,7 @@ pub struct Mode {
 
     #[bits(1)]
     /// Enable power supplies and oscillator in standby mode.
+    ///
     pub standby_enable: bool,
 }
 
