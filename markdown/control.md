@@ -6,12 +6,12 @@ chip-specific constants from propagating throughout the software, and
 is easier to program.
 
 There are three steps between this structure and the IC: the
-[Registers::write](fn@crate::registers::Registers::write)
+[Control::write](fn@crate::control::Control::write)
 method translates this object to a
 [HardRegisters](struct@crate::hard_registers::HardRegisters)
 object, which makes use of IC-specific constants rather than the familiar
 engineering units of
-[Registers](struct@crate::registers::Registers), and is closer to the data
+[Control](struct@crate::control::Control), and is closer to the data
 format of the actual IC hardware registers. However,
 [HardRegisters](struct@crate::hard_registers::HardRegisters)
 still

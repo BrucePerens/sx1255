@@ -11,10 +11,10 @@ function serializes the data to fit the actual
 register formats. 
 
 Some of these structures are not directly used by the
-programmer. Instead, the module [registers](mod@crate::registers)
+programmer. Instead, the module [control](mod@crate::control)
 defines similar data structures using more convenient data formats in the
 engineer's accustomed units: dB, femtoFarad, ohm, etc.; rather than a binary
-encoding. [Registers::write](fn@crate::registers::Registers::write)
+encoding. [Control::write](fn@crate::control::Control::write)
 translates its data to the
 [HardRegisters](struct@crate::hard_registers::HardRegisters)
 data format, serializes that to the actual data format used by the IC hardware,

@@ -84,20 +84,20 @@ pub struct Frequency {
 
 #[derive(Debug, Default, PartialEq, Eq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
-/// Version data.
+/// IC version data. This feature is not documented for SX1257.
 pub struct Version {
     #[bits(4)]
-    /// 1 for SX1255, this register is not documented for SX1257.
+    /// 1 for SX1255.
     fill_revision_number: u8,
 
     #[bits(4)]
-    /// 0xA for SX1255, this register is not documented for SX1257.
+    /// 0xA for SX1255.
     metal_mask_revision_number: u8,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
-/// SX1255 hardware transmit front-end control register.
+/// Transmit front-end control register.
 pub struct TxFrontend {
     #[bits(1)]
     #[doc(hidden)]
@@ -132,8 +132,7 @@ pub enum TxMixerTankResistance {
 
 #[derive(Debug, Default, PartialEq, Eq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
-/// Hardware transmit front-end control register items documented only for the
-/// SX1255.
+/// Hardware transmit front-end control items documented only for SX1255.
 pub struct TxFrontend1255 {
     #[bits(2)]
     #[doc(hidden)]
@@ -181,7 +180,7 @@ pub struct TxFrontend1255 {
 
 #[repr(u8)]
 #[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
-/// Settings for [RxFrontend::rx_zin]
+/// Settings for [RxFrontend::zin]
 pub enum RxZIn {
     #[default]
     I50Ω = 0,
@@ -190,7 +189,7 @@ pub enum RxZIn {
 
 #[repr(u8)]
 #[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
-/// Settings for [RxFrontend::rx_adc_bw]
+/// Settings for [RxFrontend::adc_bw]
 /// The SX1255 data sheet has a cryptic comment: "use 0x01 instead". This
 /// is not present in the SX1257 data sheet.
 pub enum RxADCBw {
@@ -202,7 +201,7 @@ pub enum RxADCBw {
 
 #[repr(u8)]
 #[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
-/// Settings for [RxFrontend::rx_adc_trim]
+/// Settings for [RxFrontend::adc_trim]
 pub enum RxADCTrim {
     /// Value for use with a 32 MHz clock crystal.
     XTal32Mhz = 6,
@@ -214,7 +213,7 @@ pub enum RxADCTrim {
 
 #[repr(u8)]
 #[derive(Debug, BinarySerde, Default, PartialEq, Eq)]
-/// Settings for [RxFrontend::rx_pga_bw]
+/// Settings for [RxFrontend::pga_bw]
 pub enum RxPGABw {
     #[default]
     BW1500KHz = 0,
@@ -238,24 +237,24 @@ pub struct RxFrontend {
     #[bits(4)]
     /// Receive baseband amplifier gain.
     /// gain = lowest gain + (2 dB * value)
-    pub rx_baseband_gain: u8,
+    pub baseband_gain: u8,
 
     #[bits(1)]
     /// Receiver input impedance. 0 is 50 ohm, 1 is 200 ohm.
-    pub rx_zin: RxZIn,
+    pub zin: RxZIn,
 
     #[bits(3)]
     /// Receive delta-sigma SSB bandwidth.
     /// The data sheet has a cryptic comment on one line: "use 0x01 instead".
-    pub rx_adc_bw: RxADCBw,
+    pub adc_bw: RxADCBw,
 
     #[bits(3)]
     /// Receive ADC trim for crystal.
-    pub rx_adc_trim: RxADCTrim,
+    pub adc_trim: RxADCTrim,
 
     #[bits(2)]
     /// Receive programmable gain amplifier bandwidth.
-    pub rx_pga_bw: RxPGABw,
+    pub pga_bw: RxPGABw,
 
     #[bits(5)]
     #[doc(hidden)]
@@ -264,7 +263,7 @@ pub struct RxFrontend {
     #[bits(2)]
     /// Receive PLL loop filter bandwidth. bandwidth = (value + 1) * 75 KHz.
     /// Wider bandwidth reduces lock time while increasing spurs and noise.
-    pub rx_pll_bw: u8,
+    pub pll_bw: u8,
 
     #[bits(1)]
     /// Puts the receive ADC into temperature-measurement mode.
@@ -273,7 +272,7 @@ pub struct RxFrontend {
     /// measurement is inherently inaccurate and this should be
     /// calibrated against an external temperature measurement of
     /// the IC.
-    pub rx_adc_temp: bool,
+    pub adc_temp: bool,
 }
 
 #[repr(u8)]
@@ -322,10 +321,20 @@ pub enum IOMap3 {
 
 #[derive(Debug, Default, Eq, PartialEq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
-/// SX1255 hardware mapping of the 4 DIO pins. This isn't terribly useful
-/// as documented, it may be that there were broken features that ended up
-/// not being documented, similarly to how the entire digital bridge and
-/// interpolation decimation feature appear to have been deleted for SX1257.
+/// SX1255 hardware mapping of the 4 DIO pins. This isn't as useful as it
+/// might be, as documented.
+/// DIO can be mapped to unambiguously indicate oscillator stability and
+/// transmit and receive PLL readiness, at the expense of losing the
+/// battery-low indication. Or it can be mapped to multiplex the TX and RX
+/// PLL ready indications to one pin, and indicate the oscillator stability
+/// and battery-low indications on two other pins. It's not documented how
+/// that multiplexed Tx and Rx PLL lock pin behaves in full-duplex mode.
+///
+/// You can read all of the values unambiguously in the Status register via
+/// SPI, but you don't get an interrupt that way. So, it seems that it's best
+/// to map the two PLL ready lines to separate pins, and poll for battery-low
+/// via SPI. Oscillator stable isn't going to be an issue after start-up unless
+/// something's broken.
 /// 
 pub struct IOMap {
     #[bits(2)]
@@ -487,7 +496,8 @@ pub struct IISM {
 
 #[repr(u8)]
 #[derive(BinarySerde, Debug, Default, Eq, PartialEq)]
-/// Values for [DigitalBridge::int_dec_mantissa]
+/// Values for [DigitalBridge::int_dec_mantissa]. This feature is not
+/// documented for SX1257.
 pub enum IntDecMantissa {
   #[default]
   /// Mantissa is 8. Interpolation increases the effective number of data
@@ -516,7 +526,8 @@ pub enum IISMTruncation {
 
 #[derive(Debug, Default, Eq, PartialEq)]
 #[binary_serde_bitfield(order = BitfieldBitOrder::MsbFirst)]
-/// SX1255 
+/// Digital bridge interpolation/decimation facility. This feature is not
+/// documented for SX1257.
 pub struct DigitalBridge {
     #[bits(1)]
     /// Interpolation / Decimation factor = mantissa * 3^m * 2^n

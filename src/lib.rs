@@ -3,8 +3,8 @@
 #[doc = include_str!("../markdown/hard_registers.md")]
 pub mod hard_registers;
 
-#[doc = include_str!("../markdown/registers.md")]
-pub mod registers;
+#[doc = include_str!("../markdown/control.md")]
+pub mod control;
 
 #[cfg(test)]
 mod tests {
